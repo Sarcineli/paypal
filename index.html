@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Shopping Cart</title>
+  <style>
+    label {
+      display: block;
+      margin-bottom: 10px;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>Shopping Cart</h1>
+  
+  <h2>Product Details</h2>
+  <p>
+    <strong>Product Name:</strong> Sample Product<br>
+    <strong>Item Number:</strong> 123456789<br>
+    <strong>Price:</strong> $19.99
+  </p>
+  
+  <h2>Buyer Information</h2>
+  <form id="buyerForm" action="/processOrder" method="POST">
+    <label for="firstName">First Name:</label>
+    <input type="text" id="firstName" name="firstName" value="John" required>
+    
+    <label for="lastName">Last Name:</label>
+    <input type="text" id="lastName" name="lastName" value="Doe" required>
+    
+    <label for="email">Email:</label>
+    <input type="email" id="email" name="email" value="johndoe@example.com" required>
+    
+    <label for="phone">Phone Number:</label>
+    <input type="tel" id="phone" name="phone" value="1234567890" required>
+    
+    <label for="address">Shipping Address:</label>
+    <input type="text" id="address" name="address" value="123 Main St" required>
+    
+    <label for="country">Country:</label>
+    <input type="text" id="country" name="country" value="United States" required>
+    
+    <label for="state">State:</label>
+    <input type="text" id="state" name="state" value="California" required>
+    
+    <label for="zip">Zip:</label>
+    <input type="text" id="zip" name="zip" value="12345" required>
+    
+    <div id="paypal-button-container"></div>
+  </form>
+
+  <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID"></script>
+  <script>
+    document.getElementById("buyerForm").addEventListener("submit", function(event) {
+      if (!validateForm()) {
+        event.preventDefault();
+      }
+    });
+
+    function validateForm() {
+      return isValid;
+    }
+
+    function displayError(fieldId, message) {
+      field.parentNode.appendChild(errorElement);
+    }
+
+    function removeError(fieldId) {
+    }
+
+    paypal.Buttons({
+      createOrder: function(data, actions) {
+        return actions.order.create({
+          purchase_units: [{
+            amount: {
+              value: '19.99'
+            }
+          }]
+        });
+      },
+      onApprove: function(data, actions) {
+        return actions.order.capture().then(function(details) {
+          const orderDetails = {
+            firstName: document.getElementById('firstName').value,
+            lastName: document.getElementById('lastName').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            address: document.getElementById('address').value,
+            country: document.getElementById('country').value,
+            state: document.getElementById('state').value,
+            zip: document.getElementById('zip').value,
+            transactionId: details.id
+          };
+
+          sendOrderToServer(orderDetails);
+
+          alert('Order placed successfully!');
+        });
+      }
+    }).render('#paypal-button-container');
+
+    function sendOrderToServer(orderDetails) {
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', 'http://127.0.0.1:5500/', true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          if (xhr.status === 200) {
+            console.log('Order processed successfully');
+          } else {
+            console.error('Failed to process the order');
+          }
+        }
+      };
+      xhr.send(JSON.stringify(orderDetails));
+    }
+  </script>
+   <script src="https://www.paypal.com/sdk/js?client-id=AUkIqX8u1rHLj_FY2MlcmnweRbZu8qB3w9baeflUTDUWrPTh47PIx2nqHiJ-bfiQMaxNE6vBrZMdgyGB"></script>
+   <script>
+     paypal.Buttons({
+       createOrder: function(data, actions) {
+         return actions.request.post('/initiatePayment')
+           .then(function(response) {
+             return response.orderID;
+           });
+       },
+       onApprove: function(data, actions) {
+         return actions.request.get('/completePayment?token=' + data.orderID + '&PayerID=' + data.payerID)
+           .then(function(response) {
+             window.location.href = '/thankyou?transactionId=' + response.transactionId;
+           });
+       }
+     }).render('#paypal-button-container');
+   </script>
+</body>
+</html>
